@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Todo</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 32rem;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    form { display: flex; gap: 0.5rem; }
+    input { flex: 1; padding: 0.4rem; }
+    ul { list-style: none; padding: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0;
+    }
+    li.done span { text-decoration: line-through; }
+    button.delete { margin-left: auto; }
+    #error { color: #9b1c1c; }
+  </style>
+</head>
+<body>
+  <h1>Todo</h1>
+  <form id="add-form">
+    <input id="title" name="title" type="text" placeholder="What needs doing?" required>
+    <button type="submit">Add</button>
+  </form>
+  <p id="error" hidden></p>
+  <ul id="todos"></ul>
+  <script>
+    const list = document.getElementById("todos");
+    const form = document.getElementById("add-form");
+    const titleInput = document.getElementById("title");
+    const errorEl = document.getElementById("error");
+
+    function showError(message) {
+      errorEl.hidden = !message;
+      errorEl.textContent = message || "";
+    }
+
+    function renderTodo(todo) {
+      const item = document.createElement("li");
+      if (todo.done) item.classList.add("done");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = todo.done;
+      checkbox.addEventListener("change", () => toggleTodo(todo.id));
+
+      const label = document.createElement("span");
+      label.textContent = todo.title;
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "delete";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", () => deleteTodo(todo.id));
+
+      item.append(checkbox, label, remove);
+      return item;
+    }
+
+    async function loadTodos() {
+      const response = await fetch("/todos");
+      if (!response.ok) {
+        showError("Could not load todos.");
+        return;
+      }
+      const todos = await response.json();
+      list.replaceChildren();
+      for (const todo of todos) {
+        list.append(renderTodo(todo));
+      }
+    }
+
+    async function toggleTodo(id) {
+      const response = await fetch("/todos/" + id, { method: "PATCH" });
+      if (!response.ok) showError("Could not update todo.");
+      await loadTodos();
+    }
+
+    async function deleteTodo(id) {
+      const response = await fetch("/todos/" + id, { method: "DELETE" });
+      if (!response.ok) showError("Could not delete todo.");
+      await loadTodos();
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const title = titleInput.value.trim();
+      if (!title) return;
+      const response = await fetch("/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) {
+        showError("Could not add todo.");
+        return;
+      }
+      titleInput.value = "";
+      showError("");
+      await loadTodos();
+    });
+
+    loadTodos();
+  </script>
+</body>
+</html>
