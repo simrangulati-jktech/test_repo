@@ -1,5 +1,7 @@
 """API tests using FastAPI's TestClient."""
 
+import pytest
+
 
 def test_get_todos_starts_empty(client):
     response = client.get("/todos")
@@ -12,14 +14,44 @@ def test_post_todo_returns_created_item(client):
     response = client.post("/todos", json={"title": "Buy milk"})
 
     assert response.status_code == 201
-    assert response.json() == {"id": 1, "title": "Buy milk", "done": False}
+    assert response.json() == {"id": 1, "title": "Buy milk", "done": False, "due_date": None}
 
     listed = client.get("/todos")
-    assert listed.json() == [{"id": 1, "title": "Buy milk", "done": False}]
+    assert listed.json() == [{"id": 1, "title": "Buy milk", "done": False, "due_date": None}]
 
 
 def test_post_todo_rejects_blank_title(client):
     response = client.post("/todos", json={"title": ""})
+
+    assert response.status_code == 422
+    assert client.get("/todos").json() == []
+
+
+def test_post_todo_with_valid_due_date(client):
+    response = client.post("/todos", json={"title": "Pay rent", "due_date": "2026-12-01"})
+
+    assert response.status_code == 201
+    assert response.json()["due_date"] == "2026-12-01"
+    assert client.get("/todos").json()[0]["due_date"] == "2026-12-01"
+
+
+def test_post_todo_without_due_date_has_null_due_date(client):
+    response = client.post("/todos", json={"title": "Someday"})
+
+    assert response.status_code == 201
+    assert response.json()["due_date"] is None
+
+
+def test_post_todo_accepts_explicit_null_due_date(client):
+    response = client.post("/todos", json={"title": "Someday", "due_date": None})
+
+    assert response.status_code == 201
+    assert response.json()["due_date"] is None
+
+
+@pytest.mark.parametrize("bad_date", ["2026-13-45", "not-a-date", "2026-02-30"])
+def test_post_todo_rejects_invalid_due_date(client, bad_date):
+    response = client.post("/todos", json={"title": "Bad", "due_date": bad_date})
 
     assert response.status_code == 422
     assert client.get("/todos").json() == []
@@ -72,3 +104,4 @@ def test_index_serves_todo_page(client):
     assert 'method: "PATCH"' in body
     assert 'method: "DELETE"' in body
     assert 'method: "POST"' in body
+    assert "todo.due_date" in body

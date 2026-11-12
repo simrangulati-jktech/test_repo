@@ -19,7 +19,7 @@ def list_todos() -> list[Todo]:
 
 def create_todo(data: TodoCreate) -> Todo:
     global _next_id
-    todo = Todo(id=_next_id, title=data.title, done=False)
+    todo = Todo(id=_next_id, title=data.title, done=False, due_date=data.due_date)
     _todos[_next_id] = todo
     _next_id += 1
     return todo

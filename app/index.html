@@ -55,6 +55,14 @@
 
       const label = document.createElement("span");
       label.textContent = todo.title;
+      item.append(checkbox, label);
+
+      if (todo.due_date) {
+        const due = document.createElement("small");
+        due.className = "due-date";
+        due.textContent = "Due " + todo.due_date;
+        item.append(due);
+      }
 
       const remove = document.createElement("button");
       remove.type = "button";
@@ -62,7 +70,7 @@
       remove.textContent = "Delete";
       remove.addEventListener("click", () => deleteTodo(todo.id));
 
-      item.append(checkbox, label, remove);
+      item.append(remove);
       return item;
     }
 

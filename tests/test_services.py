@@ -1,5 +1,7 @@
 """Tests for in-memory todo service logic."""
 
+from datetime import date
+
 import pytest
 
 from app import services
@@ -19,6 +21,14 @@ def test_create_todo_assigns_incrementing_ids():
     assert first.done is False
     assert second.id == 2
     assert second.title == "Walk dog"
+
+
+def test_create_todo_stores_due_date():
+    with_due = services.create_todo(TodoCreate(title="Pay rent", due_date="2026-12-01"))
+    without_due = services.create_todo(TodoCreate(title="Someday"))
+
+    assert with_due.due_date == date(2026, 12, 1)
+    assert without_due.due_date is None
 
 
 def test_list_todos_returns_items_in_creation_order():
